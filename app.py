@@ -13,10 +13,10 @@ def main():
     st.title("3D модел на герой с Three.js в Streamlit")
     
     # URL на .obj файла
-    
+    obj_url = "https://threejs.org/examples/models/obj/male02/male02.obj"
     
     # Ако искате да го кеширате локално
-    obj_path = "Mario.obj"
+    obj_path = "male02.obj"
     
     if not Path(obj_path).exists():
         download_obj_file(obj_url, obj_path)
