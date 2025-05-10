@@ -1,66 +1,96 @@
 import streamlit as st
-import numpy as np
-import os
+from pathlib import Path
+import requests
 
-# Импортиране на необходимите библиотеки за визуализация на 3D модел с Three.js
-from streamlit.components.v1 import html
+# Функция за изтегляне на .obj файла (ако не е локален)
+def download_obj_file(url, save_path):
+    response = requests.get(url)
+    with open(save_path, 'wb') as f:
+        f.write(response.content)
 
-# HTML + JavaScript код за зареждане на онлайн 3D модел
-html_code = """
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D Model Viewer</title>
-    <style>
-        body { margin: 0; overflow: hidden; }
-        canvas { display: block; }
-    </style>
-</head>
-<body>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/loaders/OBJLoader.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/controls/OrbitControls.js"></script>
+# Streamlit app
+def main():
+    st.title("3D модел на герой с Three.js в Streamlit")
+    
+    # URL на .obj файла
+    obj_url = "https://threejs.org/examples/models/obj/male02/male02.obj"
+    
+    # Ако искате да го кеширате локално
+    obj_path = "male02.obj"
+    
+    if not Path(obj_path).exists():
+        download_obj_file(obj_url, obj_path)
+    
+    # Three.js визуализация чрез HTML
+    html_code = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Three.js 3D Model</title>
+        <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/loaders/OBJLoader.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/controls/OrbitControls.js"></script>
+        <style>
+            body {{ margin: 0; }}
+            canvas {{ display: block; width: 100%; height: 100vh; }}
+        </style>
+    </head>
+    <body>
+        <script>
+            // Инициализация на сцена, камера и рендер
+            const scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xf0f0f0);
+            const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            const renderer = new THREE.WebGLRenderer({{ antialias: true }});
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.body.appendChild(renderer.domElement);
 
-    <script>
-        // Създаване на сцена и камера
-        var scene = new THREE.Scene();
-        var camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        var renderer = new THREE.WebGLRenderer();
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        document.body.appendChild(renderer.domElement);
+            // Добавяне на контроли за орбита
+            const controls = new THREE.OrbitControls(camera, renderer.domElement);
+            camera.position.set(5, 5, 5);
+            controls.update();
 
-        // Зареждаме 3D модела от онлайн URL
-        var loader = new THREE.OBJLoader();
-        loader.load('https://threejs.org/examples/models/obj/male02/male02.obj', function (object) {
-            object.scale.set(0.1, 0.1, 0.1);  // Променяме мащаба на модела
-            scene.add(object);
-        });
+            // Осветление
+            const light = new THREE.DirectionalLight(0xffffff, 1);
+            light.position.set(1, 1, 1);
+            scene.add(light);
+            scene.add(new THREE.AmbientLight(0x404040));
 
-        // Добавяне на светлина
-        var light = new THREE.AmbientLight(0x404040); // Мека бяла светлина
-        scene.add(light);
+            // Зареждане на .obj модела
+            const loader = new THREE.OBJLoader();
+            loader.load(
+                "{obj_url}",  // или "./male02.obj" ако сте го запазили
+                function (object) {{
+                    scene.add(object);
+                }},
+                function (xhr) {{
+                    console.log((xhr.loaded / xhr.total * 100) + '% зареден');
+                }},
+                function (error) {{
+                    console.error('Грешка при зареждане на модела:', error);
+                }}
+            );
 
-        // Позиционираме камерата
-        camera.position.z = 5;
+            // Анимация
+            function animate() {{
+                requestAnimationFrame(animate);
+                controls.update();
+                renderer.render(scene, camera);
+            }}
+            animate();
 
-        // Контроли за движение на камерата
-        var controls = new THREE.OrbitControls(camera, renderer.domElement);
+            // Респонсивност
+            window.addEventListener('resize', () => {{
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            }});
+        </script>
+    </body>
+    </html>
+    """
+    
+    st.components.v1.html(html_code, height=600)
 
-        // Функция за анимация на сцената
-        function animate() {
-            requestAnimationFrame(animate);
-            controls.update();  // Извършваме обновление на контролните действия
-            renderer.render(scene, camera);  // Рендерираме сцената
-        }
-
-        animate();
-    </script>
-</body>
-</html>
-"""
-
-# Използваме Streamlit за да вградим HTML/JavaScript код в приложението
-st.components.v1.html(html_code, height=800)
-
+if __name__ == "__main__":
+    main()
