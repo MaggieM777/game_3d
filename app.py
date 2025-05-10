@@ -35,6 +35,7 @@ threejs_html = """
 
     const camera = new THREE.PerspectiveCamera(60, canvas.width / canvas.height, 0.1, 1000);
     camera.position.set(0, 5, 10);
+    camera.lookAt(0, 0, 0);
     
     const light = new THREE.DirectionalLight(0xffffff, 1);
     light.position.set(10, 10, 10);
@@ -60,13 +61,31 @@ threejs_html = """
     // Герой
     let hero;
     const loader = new THREE.GLTFLoader();
-    loader.load("mini_mario_rigged_mixamo.glb", function (gltf) {
-      hero = gltf.scene;
-      hero.position.set(0, 0, 0);
-      hero.scale.set(1, 1, 1);
-      scene.add(hero);
-      animate();
-    });
+    
+    // Публичен URL към модела от GitHub
+    const modelUrl = "https://raw.githubusercontent.com/MaggieM777/game_3d/main/mini_mario_rigged_mixamo.glb";
+    
+    loader.load(
+      modelUrl,
+      function (gltf) {
+        hero = gltf.scene;
+        hero.position.set(0, 0, 0);
+        hero.scale.set(0.5, 0.5, 0.5); // Регулиране размера
+        scene.add(hero);
+        animate();
+      },
+      undefined,
+      function (error) {
+        console.error("Грешка при зареждане на модела:", error);
+        // Създаване на временен куб ако модела не се зареди
+        const geometry = new THREE.BoxGeometry(1, 2, 1);
+        const material = new THREE.MeshStandardMaterial({ color: 0x0000ff });
+        hero = new THREE.Mesh(geometry, material);
+        hero.position.set(0, 1, 0);
+        scene.add(hero);
+        animate();
+      }
+    );
 
     function animate() {
       requestAnimationFrame(animate);
@@ -102,10 +121,8 @@ threejs_html = """
         // Проверка дали героят е достигнал целта
         const dx = hero.position.x - flag.position.x;
         const dz = hero.position.z - flag.position.z;
-        if (Math.sqrt(dx*dx + dz*dz) < 1) {
+        if (Math.sqrt(dx*dx + dz*dz) < 1.5) {
           alert("🎉 Поздравления! Достигна целта!");
-          const audio = new Audio("https://www.soundjay.com/buttons/sounds/button-3.mp3");
-          audio.play();
         }
 
         index++;
