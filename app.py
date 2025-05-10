@@ -2,34 +2,28 @@ import streamlit as st
 from pathlib import Path
 import requests
 
-# Функция за изтегляне на .obj файла (ако не е локален)
 def download_obj_file(url, save_path):
     response = requests.get(url)
     with open(save_path, 'wb') as f:
         f.write(response.content)
 
-# Streamlit app
 def main():
-    st.title("3D модел на герой с Three.js в Streamlit")
+    st.title("Управление на герой с клавиатурни стрелки")
     
-    # URL на .obj файла
     obj_url = "https://threejs.org/examples/models/obj/male02/male02.obj"
-    
-    # Ако искате да го кеширате локално
     obj_path = "male02.obj"
     
     if not Path(obj_path).exists():
         download_obj_file(obj_url, obj_path)
     
-    # Three.js визуализация чрез HTML
+    # HTML + JavaScript код с клавиатурно управление
     html_code = f"""
     <!DOCTYPE html>
     <html>
     <head>
-        <title>Three.js 3D Model</title>
+        <title>Three.js Управление със стрелки</title>
         <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/loaders/OBJLoader.js"></script>
-        <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/controls/OrbitControls.js"></script>
         <style>
             body {{ margin: 0; }}
             canvas {{ display: block; width: 100%; height: 100vh; }}
@@ -37,7 +31,7 @@ def main():
     </head>
     <body>
         <script>
-            // Инициализация на сцена, камера и рендер
+            // Инициализация
             const scene = new THREE.Scene();
             scene.background = new THREE.Color(0xf0f0f0);
             const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -45,38 +39,69 @@ def main():
             renderer.setSize(window.innerWidth, window.innerHeight);
             document.body.appendChild(renderer.domElement);
 
-            // Добавяне на контроли за орбита
-            const controls = new THREE.OrbitControls(camera, renderer.domElement);
-            camera.position.set(5, 5, 5);
-            controls.update();
-
             // Осветление
             const light = new THREE.DirectionalLight(0xffffff, 1);
             light.position.set(1, 1, 1);
             scene.add(light);
             scene.add(new THREE.AmbientLight(0x404040));
 
-            // Зареждане на .obj модела
+            // Зареждане на модела
             const loader = new THREE.OBJLoader();
+            let hero;
             loader.load(
-                "{obj_url}",  // или "./male02.obj" ако сте го запазили
+                "{obj_url}",
                 function (object) {{
-                    scene.add(object);
+                    hero = object;
+                    scene.add(hero);
+                    hero.position.set(0, 0, 0);  // Начална позиция
+                    hero.scale.set(0.5, 0.5, 0.5);  // Мащабиране (ако е твърде голям)
                 }},
-                function (xhr) {{
-                    console.log((xhr.loaded / xhr.total * 100) + '% зареден');
-                }},
+                undefined,
                 function (error) {{
-                    console.error('Грешка при зареждане на модела:', error);
+                    console.error("Грешка при зареждане:", error);
                 }}
             );
 
-            // Анимация
+            // Настройки за движение
+            const moveSpeed = 0.2;
+            const keys = {{ ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false }};
+
+            // Следи натискане на клавиши
+            window.addEventListener('keydown', (event) => {{
+                if (keys.hasOwnProperty(event.code)) {{
+                    keys[event.code] = true;
+                }}
+            }});
+            window.addEventListener('keyup', (event) => {{
+                if (keys.hasOwnProperty(event.code)) {{
+                    keys[event.code] = false;
+                }}
+            }});
+
+            // Анимация и движение
             function animate() {{
                 requestAnimationFrame(animate);
-                controls.update();
+                
+                if (hero) {{
+                    // Управление със стрелки
+                    if (keys.ArrowUp) hero.position.z -= moveSpeed;    // Напред
+                    if (keys.ArrowDown) hero.position.z += moveSpeed;  // Назад
+                    if (keys.ArrowLeft) hero.position.x -= moveSpeed;  // Вляво
+                    if (keys.ArrowRight) hero.position.x += moveSpeed; // Вдясно
+                    
+                    // Въртене (опционално)
+                    if (keys.ArrowLeft || keys.ArrowRight) {{
+                        hero.rotation.y = keys.ArrowLeft ? Math.PI/4 : -Math.PI/4;
+                    }} else {{
+                        hero.rotation.y = 0;
+                    }}
+                }}
+                
                 renderer.render(scene, camera);
             }}
+            
+            camera.position.set(0, 5, 10);  // Позиция на камерата (поглед отгоре)
+            camera.lookAt(0, 0, 0);
             animate();
 
             // Респонсивност
@@ -91,6 +116,7 @@ def main():
     """
     
     st.components.v1.html(html_code, height=600)
+    st.markdown("**Инструкции:** Използвайте стрелките на клавиатурата (↑, ↓, ←, →) за движение.")
 
 if __name__ == "__main__":
     main()
