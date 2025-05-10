@@ -27,11 +27,15 @@ model_path = 'common_frog.glb'  # Увери се, че пътят е прави
 if not os.path.exists(model_path):
     st.error(f"Моделът не може да бъде намерен: {model_path}")
 else:
-    # Зареждане на .glb файл
+    # Зареждане на .glb файл с GLTFLoader
     loader = GLTFLoader()
 
+    def on_load(gltf):
+        """Функция, която се извиква след успешното зареждане на модела"""
+        scene.add(gltf['scene'])
+
     # Зареждаме 3D модела и го добавяме към сцената
-    loader.load(model_path, lambda gltf: scene.add(gltf['scene']))
+    loader.load(model_path, on_load)
 
     # Примерно рендериране
     st.write("Рендерираме 3D модела...")
