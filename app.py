@@ -60,7 +60,7 @@ threejs_html = """
     // Герой
     let hero;
     const loader = new THREE.GLTFLoader();
-    loader.load("https://raw.githubusercontent.com/MaggieM777/game_3d/main/mini_mario_rigged_mixamo.glb", function (gltf) {
+    loader.load("mini_mario_rigged_mixamo.glb", function (gltf) {
       hero = gltf.scene;
       hero.position.set(0, 0, 0);
       hero.scale.set(1, 1, 1);
