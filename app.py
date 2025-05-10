@@ -1,49 +1,35 @@
 import streamlit as st
-from pythreejs import *
+import pyrender
+import trimesh
 import numpy as np
-import os
 
-# Създаване на сцена
-scene = Scene()
-
-# Камера
-camera = PerspectiveCamera(fov=75, aspect=1, near=0.1, far=1000)
-camera.position = [0, 1, 5]
-
-# Добавяне на светлина
-light = DirectionalLight(color='white', intensity=1)
-light.position = [0, 1, 1]
-scene.add(light)
-
-# Рендерър
-renderer = WebGLRenderer(width=800, height=600)
-renderer.scene = scene
-renderer.camera = camera
-
-# Задаване на пътя към 3D модела
+# Зареждаме 3D модела (.glb файл) с trimesh
 model_path = 'common_frog.glb'  # Увери се, че пътят е правилен
 
-# Проверка дали моделът е в директорията
 if not os.path.exists(model_path):
     st.error(f"Моделът не може да бъде намерен: {model_path}")
 else:
-    # Зареждане на .glb файл с GLTFLoader
-    loader = GLTFLoader()
+    # Зареждаме модела с trimesh
+    mesh = trimesh.load(model_path)
+    
+    # Създаваме рендеринг на сцената с pyrender
+    scene = pyrender.Scene()
+    mesh_node = pyrender.Node(mesh=mesh)
+    scene.add_node(mesh_node)
 
-    def on_load(gltf):
-        """Функция, която се извиква след успешното зареждане на модела"""
-        scene.add(gltf['scene'])
+    # Камера
+    camera = pyrender.PerspectiveCamera(yfov=np.pi / 3.0)
+    camera_node = pyrender.Node(camera=camera, translation=[0, 0, 5])
+    scene.add_node(camera_node)
 
-    # Зареждаме 3D модела и го добавяме към сцената
-    loader.load(model_path, on_load)
+    # Светлина
+    light = pyrender.DirectionalLight(color=np.ones(3), intensity=3.0)
+    light_node = pyrender.Node(light=light, translation=[0, 10, 10])
+    scene.add_node(light_node)
 
-    # Примерно рендериране
+    # Рендерираме сцената
+    viewer = pyrender.Viewer(scene, use_raymond_lighting=True)
+
+    # Добавяме рендериране в Streamlit
     st.write("Рендерираме 3D модела...")
-
-    # Показваме рендерирането в Streamlit
-    st.components.v1.html(renderer)
-
-# Допълнителни Streamlit компоненти за управление на камерата или други взаимодействия
-# Може да добавиш бутони или слайдери за интеракция с модела
-st.sidebar.title("Контроли")
-st.sidebar.write("Може да добавите контроли за взаимодействие с модела тук.")
+    st.pyplot(viewer)
