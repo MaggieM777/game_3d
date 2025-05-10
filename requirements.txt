@@ -1,4 +1,3 @@
 streamlit
-pyrender
-trimesh
+pythreejs
 numpy
