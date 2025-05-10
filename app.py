@@ -1,39 +1,70 @@
 import streamlit as st
-import numpy as np
-from pythreejs import Scene, PerspectiveCamera, WebGLRenderer, AmbientLight, DirectionalLight, GLTFLoader, Mesh, MeshBasicMaterial, BoxGeometry
-from IPython.display import display
+import streamlit.components.v1 as components
+import base64
 
-# Заглавие на приложението
-st.title("3D Model Viewer for Common Frog")
+# Заглавие
+st.set_page_config(layout="wide")
+st.title("👾 Mario.obj Viewer (Arrow key movement)")
 
-# Въвеждаме път към модела
-model_path = "common_frog.glb"
+# Зареждаме Mario.obj и го кодираме в base64
+with open("Mario.obj", "rb") as f:
+    obj_data = f.read()
+    obj_base64 = base64.b64encode(obj_data).decode()
 
-# Проверяваме дали файлът съществува и ако е така, зареждаме модела
-try:
-    # Създаване на сцена
-    scene = Scene()
+# Вграждаме HTML с Three.js
+html_content = f"""
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Mario Viewer</title>
+  <style>body {{ margin: 0; overflow: hidden; }}</style>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.160.1/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.160.1/examples/js/loaders/OBJLoader.js"></script>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 1000);
+  camera.position.z = 5;
 
-    # Добавяне на камера
-    camera = PerspectiveCamera(fov=75, aspect=1, near=0.1, far=1000, position=[0, 1, 3])
-    scene.add(camera)
+  const renderer = new THREE.WebGLRenderer({canvas: document.querySelector("#c"), antialias: true});
+  renderer.setSize(window.innerWidth, window.innerHeight);
 
-    # Добавяне на светлини
-    scene.add(AmbientLight(intensity=0.5))
-    scene.add(DirectionalLight(color='#ffffff', intensity=1, position=[3, 3, 3]))
+  const controls = new THREE.OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
 
-    # Зареждаме .glb модела с GLTFLoader
-    loader = GLTFLoader()
-    loader.load(model_path, lambda gltf: scene.add(gltf['scene']))
+  const ambientLight = new THREE.AmbientLight(0xffffff, 1);
+  scene.add(ambientLight);
 
-    # Рендериране на сцената
-    renderer = WebGLRenderer()
-    renderer.setSize(800, 600)
-    renderer.render(scene, camera)
+  const loader = new THREE.OBJLoader();
+  const objText = atob("{obj_base64}");
+  const obj = loader.parse(objText);
+  obj.scale.set(0.01, 0.01, 0.01);
+  scene.add(obj);
 
-    # Показваме рендерираната сцена в Streamlit
-    st.write("Моделът е зареден успешно!")
-    st.image(renderer.to_data_url(), use_column_width=True)
+  // Стрелки за движение
+  document.addEventListener("keydown", function(event) {{
+    switch (event.key) {{
+      case "ArrowLeft": obj.position.x -= 0.1; break;
+      case "ArrowRight": obj.position.x += 0.1; break;
+      case "ArrowUp": obj.position.z -= 0.1; break;
+      case "ArrowDown": obj.position.z += 0.1; break;
+    }}
+  }});
 
-except Exception as e:
-    st.error(f"Грешка при зареждането на модела: {e}")
+  function animate() {{
+    requestAnimationFrame(animate);
+    controls.update();
+    renderer.render(scene, camera);
+  }}
+
+  animate();
+</script>
+</body>
+</html>
+"""
+
+components.html(html_content, height=600)
