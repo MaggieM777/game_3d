@@ -1,70 +1,75 @@
 import streamlit as st
-import streamlit.components.v1 as components
-import base64
+import pathlib
 
-# Заглавие
-st.set_page_config(layout="wide")
-st.title("👾 Mario.obj Viewer (Arrow key movement)")
+st.set_page_config(page_title="3D Mario Viewer", layout="wide")
 
-# Зареждаме Mario.obj и го кодираме в base64
-with open("Mario.obj", "rb") as f:
+st.title("👾 3D Mario Viewer (.obj) with Three.js")
+
+# Път до Mario.obj (в същата директория)
+obj_path = pathlib.Path("Mario.obj")
+if not obj_path.exists():
+    st.error("❌ Файлът Mario.obj не е намерен!")
+    st.stop()
+
+# Зареждане на .obj съдържанието като текст
+with open(obj_path, "r") as f:
     obj_data = f.read()
-    obj_base64 = base64.b64encode(obj_data).decode()
 
-# Вграждаме HTML с Three.js
-html_content = f"""
+# Вграждане на Three.js + JS код
+st.components.v1.html(f"""
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="utf-8">
-  <title>Mario Viewer</title>
-  <style>body {{ margin: 0; overflow: hidden; }}</style>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.160.1/examples/js/controls/OrbitControls.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.160.1/examples/js/loaders/OBJLoader.js"></script>
+  <meta charset="UTF-8" />
+  <title>Mario 3D Model</title>
+  <style>
+    body {{ margin: 0; overflow: hidden; }}
+    canvas {{ display: block; }}
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.157.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.157.0/examples/js/loaders/OBJLoader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.157.0/examples/js/controls/OrbitControls.js"></script>
 </head>
 <body>
-<canvas id="c"></canvas>
-<script>
-  const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 1000);
-  camera.position.z = 5;
+  <script>
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0xeeeeee);
 
-  const renderer = new THREE.WebGLRenderer({canvas: document.querySelector("#c"), antialias: true});
-  renderer.setSize(window.innerWidth, window.innerHeight);
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+    camera.position.z = 5;
 
-  const controls = new THREE.OrbitControls(camera, renderer.domElement);
-  controls.enableDamping = true;
+    const renderer = new THREE.WebGLRenderer();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
 
-  const ambientLight = new THREE.AmbientLight(0xffffff, 1);
-  scene.add(ambientLight);
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
 
-  const loader = new THREE.OBJLoader();
-  const objText = atob("{obj_base64}");
-  const obj = loader.parse(objText);
-  obj.scale.set(0.01, 0.01, 0.01);
-  scene.add(obj);
+    const light = new THREE.DirectionalLight(0xffffff, 1);
+    light.position.set(0, 1, 1).normalize();
+    scene.add(light);
 
-  // Стрелки за движение
-  document.addEventListener("keydown", function(event) {{
-    switch (event.key) {{
-      case "ArrowLeft": obj.position.x -= 0.1; break;
-      case "ArrowRight": obj.position.x += 0.1; break;
-      case "ArrowUp": obj.position.z -= 0.1; break;
-      case "ArrowDown": obj.position.z += 0.1; break;
+    const objData = `{obj_data.replace("\\", "\\\\").replace("`", "\\`")}`;
+    const blob = new Blob([objData], {{type: 'text/plain'}});
+    const url = URL.createObjectURL(blob);
+
+    const loader = new THREE.OBJLoader();
+    loader.load(url, function (object) {{
+      scene.add(object);
+    }});
+
+    function animate() {{
+      requestAnimationFrame(animate);
+      controls.update();
+      renderer.render(scene, camera);
     }}
-  }});
+    animate();
 
-  function animate() {{
-    requestAnimationFrame(animate);
-    controls.update();
-    renderer.render(scene, camera);
-  }}
-
-  animate();
-</script>
+    window.addEventListener('resize', () => {{
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    }});
+  </script>
 </body>
 </html>
-"""
-
-components.html(html_content, height=600)
+""", height=600)
