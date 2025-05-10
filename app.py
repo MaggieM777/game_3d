@@ -7,6 +7,7 @@ st.title("🌲 Урок 3: Герой в 3D гора")
 threejs_html = """
 <div style="width:100%; height:600px;">
   <script type="module">
+    // Use exact CDN URLs for all Three.js modules
     import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.150.1/build/three.module.js';
     import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.150.1/examples/jsm/loaders/GLTFLoader.js';
     import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.150.1/examples/jsm/controls/OrbitControls.js';
@@ -27,14 +28,14 @@ threejs_html = """
     camera.position.set(0, 5, 10);
     camera.lookAt(0, 0, 0);
     
-    // Осветление
+    // Lighting
     const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
     directionalLight.position.set(10, 20, 10);
     directionalLight.castShadow = true;
     scene.add(directionalLight);
     scene.add(new THREE.AmbientLight(0x404040));
 
-    // Терен
+    // Ground
     const ground = new THREE.Mesh(
       new THREE.PlaneGeometry(50, 50),
       new THREE.MeshStandardMaterial({ 
@@ -46,7 +47,7 @@ threejs_html = """
     ground.receiveShadow = true;
     scene.add(ground);
 
-    // Флаг
+    // Flag
     const flag = new THREE.Mesh(
       new THREE.BoxGeometry(0.5, 1, 0.5),
       new THREE.MeshStandardMaterial({ color: 0xff0000 })
@@ -55,10 +56,11 @@ threejs_html = """
     flag.castShadow = true;
     scene.add(flag);
 
-    // Герой
+    // Hero character
     let hero;
     const loader = new GLTFLoader();
     
+    // Load model with error handling
     loader.load(
       'https://raw.githubusercontent.com/MaggieM777/game_3d/main/mini_mario_rigged_mixamo.glb',
       (gltf) => {
@@ -66,6 +68,7 @@ threejs_html = """
         hero.position.set(0, 0, 0);
         hero.scale.set(0.5, 0.5, 0.5);
         
+        // Enable shadows for all parts
         hero.traverse((node) => {
           if (node.isMesh) {
             node.castShadow = true;
@@ -78,6 +81,7 @@ threejs_html = """
       undefined,
       (error) => {
         console.error("Error loading model:", error);
+        // Fallback cube
         const geometry = new THREE.BoxGeometry(1, 2, 1);
         const material = new THREE.MeshStandardMaterial({ color: 0x0000ff });
         hero = new THREE.Mesh(geometry, material);
@@ -86,18 +90,18 @@ threejs_html = """
       }
     );
 
-    // Анимация
+    // Animation loop
     function animate() {
       requestAnimationFrame(animate);
       renderer.render(scene, camera);
     }
     animate();
 
-    // Контроли
+    // Controls
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
 
-    // Движение
+    // Movement function - must be attached to window
     window.runCommands = function() {
       const cmds = document.getElementById("commandInput").value
         .split('.')
@@ -122,6 +126,7 @@ threejs_html = """
           hero.position.x += step;
         }
 
+        // Check if reached flag
         if (hero.position.distanceTo(flag.position) < 2) {
           alert("🎉 Поздравления! Достигна целта!");
         }
