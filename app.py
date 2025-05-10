@@ -1,13 +1,7 @@
 import streamlit as st
-import pythreejs
 from pythreejs import *
 import numpy as np
-
-# Създаване на Streamlit интерфейс
-st.title("3D Модел с Three.js в Streamlit")
-
-# Зареждане на 3D модел
-st.write("Зареждаме .glb модел...")
+import os
 
 # Създаване на сцена
 scene = Scene()
@@ -26,12 +20,26 @@ renderer = WebGLRenderer(width=800, height=600)
 renderer.scene = scene
 renderer.camera = camera
 
-# Зареждане на .glb файл
-loader = GLTFLoader()
-loader.load('common_frog.glb', lambda gltf: scene.add(gltf['scene']))
+# Задаване на пътя към 3D модела
+model_path = 'common_frog.glb'  # Увери се, че пътят е правилен
 
-# Примерно рендериране
-st.write("Рендерираме модела...")
+# Проверка дали моделът е в директорията
+if not os.path.exists(model_path):
+    st.error(f"Моделът не може да бъде намерен: {model_path}")
+else:
+    # Зареждане на .glb файл
+    loader = GLTFLoader()
 
-# Показваме рендерирането в Streamlit
-st.components.v1.html(renderer)
+    # Зареждаме 3D модела и го добавяме към сцената
+    loader.load(model_path, lambda gltf: scene.add(gltf['scene']))
+
+    # Примерно рендериране
+    st.write("Рендерираме 3D модела...")
+
+    # Показваме рендерирането в Streamlit
+    st.components.v1.html(renderer)
+
+# Допълнителни Streamlit компоненти за управление на камерата или други взаимодействия
+# Може да добавиш бутони или слайдери за интеракция с модела
+st.sidebar.title("Контроли")
+st.sidebar.write("Може да добавите контроли за взаимодействие с модела тук.")
