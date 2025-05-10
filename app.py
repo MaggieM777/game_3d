@@ -1,47 +1,39 @@
 import streamlit as st
-import pyrender
-import trimesh
 import numpy as np
+from pythreejs import Scene, PerspectiveCamera, WebGLRenderer, AmbientLight, DirectionalLight, GLTFLoader, Mesh, MeshBasicMaterial, BoxGeometry
+from IPython.display import display
 
 # Заглавие на приложението
-st.title("3D Model Viewer with Streamlit")
+st.title("3D Model Viewer for Common Frog")
 
-# В този пример, задаваме фиксиран път към .glb модел
-model_path = "common_frog.glb"  # Заменете с пътя към вашия .glb файл
+# Въвеждаме път към модела
+model_path = "common_frog.glb"
 
-# Проверяваме дали пътят към модела съществува
-if model_path:
-    try:
-        # Зареждаме модела с помощта на Trimesh
-        mesh = trimesh.load(model_path)
+# Проверяваме дали файлът съществува и ако е така, зареждаме модела
+try:
+    # Създаване на сцена
+    scene = Scene()
 
-        # Преобразуваме модела в Pyrender Scene
-        scene = pyrender.Scene()
+    # Добавяне на камера
+    camera = PerspectiveCamera(fov=75, aspect=1, near=0.1, far=1000, position=[0, 1, 3])
+    scene.add(camera)
 
-        # Създаваме рендер камера
-        camera = pyrender.PerspectiveCamera(yfov=np.pi / 3.0)
+    # Добавяне на светлини
+    scene.add(AmbientLight(intensity=0.5))
+    scene.add(DirectionalLight(color='#ffffff', intensity=1, position=[3, 3, 3]))
 
-        # Създаваме светлина
-        light = pyrender.PointLight(color=np.ones(3), intensity=10.0)
+    # Зареждаме .glb модела с GLTFLoader
+    loader = GLTFLoader()
+    loader.load(model_path, lambda gltf: scene.add(gltf['scene']))
 
-        # Добавяме камерата и светлината към сцената
-        scene.add(camera, pose=np.eye(4))
-        scene.add(light, pose=np.eye(4))
+    # Рендериране на сцената
+    renderer = WebGLRenderer()
+    renderer.setSize(800, 600)
+    renderer.render(scene, camera)
 
-        # Преобразуваме Trimesh модела в Pyrender
-        mesh = pyrender.Mesh.from_trimesh(mesh)
+    # Показваме рендерираната сцена в Streamlit
+    st.write("Моделът е зареден успешно!")
+    st.image(renderer.to_data_url(), use_column_width=True)
 
-        # Добавяме мрежата към сцената
-        scene.add(mesh)
-
-        # Настройване на изгледа и рендериране на сцена
-        renderer = pyrender.OffscreenRenderer(800, 600)
-        color, depth = renderer.render(scene)
-
-        # Показваме изображението в Streamlit
-        st.image(color)
-
-    except Exception as e:
-        st.error(f"Грешка при зареждането на модела: {e}")
-else:
-    st.info("Моля, въведете път към .glb модел.")
+except Exception as e:
+    st.error(f"Грешка при зареждането на модела: {e}")
